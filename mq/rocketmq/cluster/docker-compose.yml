@@ -1,0 +1,74 @@
+version: '2.3'
+services:
+  namesrv-m:
+    image: foxiswho/rocketmq:server-4.3.2
+    restart: always
+    ports:
+      - 9876:9876
+    volumes:
+      - "./rocketmq/namesrv/master/logs:/opt/logs"
+      - "./rocketmq/namesrv/master/store:/opt/store"
+      # 使用宿主机时间
+      #- /etc/localtime:/etc/localtime:ro
+    environment:
+      JAVA_OPT_EXT: "-server -Xms300m -Xmx300m -Xmn150m"
+  namesrv-s:
+    image: foxiswho/rocketmq:server-4.3.2
+    restart: always
+    ports:
+      - 9877:9876
+    volumes:
+      - "./rocketmq/namesrv/slave/logs:/opt/logs"
+      - "./rocketmq/namesrv/slave/store:/opt/store"
+      #- /etc/localtime:/etc/localtime:ro
+    environment:
+      JAVA_OPT_EXT: "-server -Xms300m -Xmx300m -Xmn150m"
+  broker-a-m:
+    image: foxiswho/rocketmq:broker-4.3.2
+    restart: always
+    ports:
+      - 10909:10909
+      - 10911:10911
+    volumes:
+      - "./rocketmq/broker/a-m/logs:/opt/logs"
+      - "./rocketmq/broker/a-m/store:/opt/store"
+      # - "./rocketmq/broker/a-m/conf/broker-a.conf:/etc/rocketmq/broker.conf"
+      #- /etc/localtime:/etc/localtime:ro
+    command: mqbroker -c /etc/rocketmq/broker.conf
+    links:
+      - namesrv-m:namesrv-m
+      - namesrv-s:namesrv-s
+    environment:
+      JAVA_OPTS: " -Duser.home=/opt"
+      #见rocketmq jvm内存默认配置 (jvm重复参数：后面生效，会覆盖)
+      JAVA_OPT_EXT: "-server -Xms300m -Xmx300m -Xmn150m"
+  broker-a-s:
+    image: foxiswho/rocketmq:broker-4.3.2
+    restart: always
+    ports:
+      - 10916:10909
+      - 10915:10915
+    volumes:
+      - "./rocketmq/broker/a-s/logs:/opt/logs"
+      - "./rocketmq/broker/a-s/store:/opt/store"
+      # - "./rocketmq/broker/a-s/conf/broker-b.conf:/etc/rocketmq/broker.conf"
+      #- /etc/localtime:/etc/localtime:ro
+    command: mqbroker -c /etc/rocketmq/broker.conf
+    links:
+      - namesrv-m:namesrv-m
+      - namesrv-s:namesrv-s
+    environment:
+      JAVA_OPTS: " -Duser.home=/opt"
+      JAVA_OPT_EXT: "-server -Xms300m -Xmx300m -Xmn150m"
+  console:
+    image: styletang/rocketmq-console-ng:latest
+    restart: always
+    ports:
+      - 9990:8080
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+    links:
+      - namesrv-m:namesrv-m
+      - namesrv-s:namesrv-s
+    environment:
+      JAVA_OPTS: -Drocketmq.config.namesrvAddr=namesrv-m:9876;namesrv-s:9877 -Dcom.rocketmq.sendMessageWithVIPChannel=false

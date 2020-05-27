@@ -1,0 +1,14 @@
+version: '2.0'
+
+services:
+  nginx:
+    restart: always
+    image: nginx:1.11.6-alpine
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./data/conf.d:/etc/nginx/conf.d
+      - ./data/log:/var/log/nginx
+      - ./data/www:/var/www
+      - ./data/etc/letsencrypt:/etc/letsencrypt
